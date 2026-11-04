@@ -19,3 +19,10 @@ e serviços), `adapter` (persistência e, nos próximos dias, web) e `config`.
 O núcleo (`domain` e `application`) não depende dos adaptadores nem de JPA/Spring Data;
 as entidades JPA ficam só em `adapter.out.persistence`. A aplicação usa `@Service` e
 `@Transactional` por decisão pragmática.
+
+## Testes
+
+`./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
+Os testes de banco sobem um MySQL 8.0 descartável com Testcontainers, um só para toda a suíte.
+`ArchitectureTest` (ArchUnit) garante que o `domain` não usa frameworks, que a `application`
+não usa Spring Data/JPA e que o núcleo não depende dos adaptadores.
