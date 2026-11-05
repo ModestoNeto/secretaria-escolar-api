@@ -43,6 +43,24 @@ a matriz completa vem com os módulos. Erros 401 e 403 saem no formato
 `StandardError {timestamp, status, error, message, path}`, como os demais. O CORS libera apenas
 `http://localhost:4200` (propriedade `app.cors.origins`).
 
+## Alunos
+
+`POST /students`, `GET /students/{id}`, `PUT /students/{id}` e `DELETE /students/{id}`
+(`ADMIN` e `SECRETARIA`). A migração `V2` cria a tabela e 12 alunos fictícios de exemplo.
+
+Decisões:
+- **Matrícula gerada** no formato ano + id com 6 dígitos (ex.: `2026000013`), com o ano vindo de um
+  `Clock` injetável. Ela depende do id, e o MySQL não aceita coluna gerada sobre `AUTO_INCREMENT`;
+  por isso o adaptador salva com um valor provisório único e troca pelo definitivo na mesma transação.
+  A matrícula e o estado ativo nunca vêm do cliente: a edição preserva os dois.
+- **Desativar, não apagar:** o `DELETE` marca o aluno como inativo (idempotente, sempre 204), porque
+  matrículas e notas dependem dele.
+- **DTOs com validação** (nome, nascimento no passado, telefone só com dígitos, e-mail opcional);
+  e-mail vazio (`""`) vira nulo. Erros no formato `StandardError`, inclusive JSON quebrado e id que
+  não é número (400).
+- **PROFESSOR sem acesso por enquanto:** a regra "só os alunos das suas turmas" depende das turmas
+  (próximas fases); até lá o acesso é negado (403).
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
