@@ -35,6 +35,14 @@ Decisões:
 - Senhas com BCrypt; o núcleo só conhece as portas `PasswordHasherPort` e `TokenPort`.
 - Sem token ou com token inválido a resposta é 401.
 
+## Autorização
+
+O papel (`ADMIN`, `SECRETARIA`, `PROFESSOR`) vai na claim `role` do JWT e vira `ROLE_<papel>`.
+As rotas são protegidas por `@PreAuthorize` (por enquanto `GET /users/{id}`, só `ADMIN`);
+a matriz completa vem com os módulos. Erros 401 e 403 saem no formato
+`StandardError {timestamp, status, error, message, path}`, como os demais. O CORS libera apenas
+`http://localhost:4200` (propriedade `app.cors.origins`).
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).

@@ -1,5 +1,6 @@
 package com.modestoneto.secretaria.adapter.in.web;
 
+import com.modestoneto.secretaria.domain.exception.NotFoundException;
 import com.modestoneto.secretaria.domain.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     ResponseEntity<StandardError> unauthorized(UnauthorizedException e, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, e.getMessage(), request);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    ResponseEntity<StandardError> notFound(NotFoundException e, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, e.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
