@@ -1,23 +1,19 @@
 package com.modestoneto.secretaria.adapter.in.web;
 
-import com.jayway.jsonpath.JsonPath;
 import com.modestoneto.secretaria.AbstractMySqlIntegrationTest;
+import com.modestoneto.secretaria.TestAuth;
 import com.modestoneto.secretaria.application.port.out.UserRepositoryPort;
 import com.modestoneto.secretaria.domain.model.Role;
-import com.modestoneto.secretaria.domain.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,24 +22,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AuthorizationTest extends AbstractMySqlIntegrationTest {
 
-    private static final String SENHA = "senha-forte";
-
     @Autowired
     MockMvc mvc;
 
     @Autowired
     UserRepositoryPort users;
 
-    /** Cria um usuário do papel e devolve o token de acesso dele. */
     private String tokenDe(Role role) throws Exception {
-        String email = role.name().toLowerCase() + "@teste.example";
-        if (users.findByEmail(email).isEmpty()) {
-            users.save(new User(null, role.name(), email, new BCryptPasswordEncoder().encode(SENHA), role, true));
-        }
-        String body = mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"" + SENHA + "\"}"))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return JsonPath.read(body, "$.accessToken");
+        return TestAuth.tokenDe(mvc, users, role);
     }
 
     private Long idDoAdmin() {
