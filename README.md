@@ -20,6 +20,21 @@ O núcleo (`domain` e `application`) não depende dos adaptadores nem de JPA/Spr
 as entidades JPA ficam só em `adapter.out.persistence`. A aplicação usa `@Service` e
 `@Transactional` por decisão pragmática.
 
+## Autenticação
+
+`POST /auth/login` (e-mail e senha) devolve um JWT de **acesso** (15 min) e um de **refresh** (7 dias),
+assinados com HS256 usando o `JWT_SECRET` do `.env` (32 caracteres ou mais). `POST /auth/refresh` troca
+o refresh por um novo par e `POST /auth/logout` responde 204.
+
+Decisões:
+- **Sem estado:** não há tabela de tokens; o logout é do cliente, que descarta os tokens. Um refresh
+  roubado vale até expirar (por isso a vida curta do acesso e o `JWT_SECRET` fora do repositório).
+- Cada token leva a claim `type`: o refresh **não autentica** rotas normais e o acesso não serve no
+  `/auth/refresh`.
+- E-mail inexistente, senha errada e usuário inativo dão o mesmo 401 ("Credenciais inválidas").
+- Senhas com BCrypt; o núcleo só conhece as portas `PasswordHasherPort` e `TokenPort`.
+- Sem token ou com token inválido a resposta é 401.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
