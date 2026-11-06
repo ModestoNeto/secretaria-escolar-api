@@ -1,5 +1,6 @@
 package com.modestoneto.secretaria.adapter.in.web;
 
+import com.modestoneto.secretaria.domain.exception.ConflictException;
 import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
 import com.modestoneto.secretaria.domain.exception.UnauthorizedException;
@@ -25,6 +26,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<StandardError> notFound(NotFoundException e, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, e.getMessage(), request);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<StandardError> conflict(ConflictException e, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, e.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

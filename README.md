@@ -84,6 +84,23 @@ e `Jose` acham "José"), com até 100 caracteres (mais que isso é 400).
 - `%q%` não usa índice (varre a tabela); para o porte de uma escola não pesa, e fica registrado como
   ponto de otimização se o volume crescer.
 
+## Turmas e disciplinas
+
+`POST/GET /subjects` e `POST/GET /classes`, `GET/PUT /classes/{id}` (`ADMIN` e `SECRETARIA`; o
+`PROFESSOR` só ganha consulta das suas turmas com o vínculo professor-disciplina). A migração `V3`
+cria as tabelas e dados fictícios: 5 disciplinas, 2 turmas e os usuários `secretaria@secretaria.example`
+e `professor@secretaria.example`, que reaproveitam o hash do administrador (mesma senha de
+desenvolvimento, nenhum segredo novo).
+- **Turma:** nome (até 60), série de 1 a 12, turno (`MORNING`, `AFTERNOON`, `EVENING`), ano letivo e
+  capacidade de 1 a 60. O nome é único **dentro do ano**: a turma "5º A" existe em 2026 e em 2027.
+- **Disciplina:** nome único, e a colação `utf8mb4_0900_ai_ci` faz "Matemática" e "matematica" serem a
+  mesma disciplina (409).
+- **409 Conflict:** o adaptador de persistência traduz a violação de unicidade em `ConflictException`
+  e o `GlobalExceptionHandler` a devolve como `StandardError`, com mensagem clara.
+- **Sem paginação:** as listas são pequenas (por escola); `GET /classes?schoolYear=2026` filtra por ano.
+- **Sem tabela de professor:** o professor é um usuário com papel `PROFESSOR`; o vínculo guarda o id
+  dele. A tabela `class_subjects` já existe no `V3` (uso no próximo passo).
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
