@@ -16,6 +16,8 @@ import java.util.TreeSet;
 @Transactional
 public class StudentService implements StudentUseCase {
 
+    private static final int MAX_QUERY_LENGTH = 100;
+
     private final StudentRepositoryPort students;
 
     public StudentService(StudentRepositoryPort students) {
@@ -50,10 +52,14 @@ public class StudentService implements StudentUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResult<Student> search(boolean includeInactive, PageRequest pageRequest) {
+    public PageResult<Student> search(String q, boolean includeInactive, PageRequest pageRequest) {
         if (!SORT_FIELDS.contains(pageRequest.sort())) {
             throw new InvalidRequestException("sort deve ser um de: " + String.join(", ", new TreeSet<>(SORT_FIELDS)));
         }
-        return students.search(includeInactive, pageRequest);
+        String termo = q == null ? "" : q.trim();
+        if (termo.length() > MAX_QUERY_LENGTH) {
+            throw new InvalidRequestException("q deve ter no máximo " + MAX_QUERY_LENGTH + " caracteres");
+        }
+        return students.search(termo, includeInactive, pageRequest);
     }
 }

@@ -43,13 +43,14 @@ class StudentController {
 
     @GetMapping
     PageResponse<StudentResponse> list(
+            @RequestParam(defaultValue = "") String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "fullName,asc") String sort,
             @RequestParam(defaultValue = "false") boolean includeInactive) {
         String[] partes = sort.split(",");
         SortDirection direction = partes.length > 1 ? parseDirection(partes[1]) : SortDirection.ASC;
-        var result = students.search(includeInactive, new PageRequest(page, size, partes[0], direction));
+        var result = students.search(q, includeInactive, new PageRequest(page, size, partes[0], direction));
         return PageResponse.from(result.map(StudentResponse::from));
     }
 

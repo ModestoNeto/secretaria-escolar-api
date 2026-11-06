@@ -73,6 +73,17 @@ Decisões:
 - **Desempate por `id`** em toda ordenação, para a ordem não mudar entre páginas quando há nomes iguais.
 - Só alunos ativos por padrão; `includeInactive=true` inclui os desativados.
 
+### Busca por nome
+
+`GET /students?q=jose` filtra por trecho do nome, **sem distinguir acento nem caixa** (`jose`, `JOSÉ`
+e `Jose` acham "José"), com até 100 caracteres (mais que isso é 400).
+- **Sem normalização no código:** a coluna usa a colação `utf8mb4_0900_ai_ci` (*accent-insensitive*,
+  *case-insensitive*), e o `LIKE` do MySQL já compara assim. Se alguém trocar a colação, o teste de
+  acento falha.
+- O `Containing` do Spring Data **escapa** `%` e `_`: `q=%` procura um `%` literal, não "todos".
+- `%q%` não usa índice (varre a tabela); para o porte de uma escola não pesa, e fica registrado como
+  ponto de otimização se o volume crescer.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).

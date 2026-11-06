@@ -13,5 +13,5 @@ public interface StudentRepositoryPort {
 
     Optional<Student> findById(Long id);
 
-    PageResult<Student> search(boolean includeInactive, PageRequest pageRequest);
+    PageResult<Student> search(String q, boolean includeInactive, PageRequest pageRequest);
 }

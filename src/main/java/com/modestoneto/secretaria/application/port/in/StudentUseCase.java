@@ -25,5 +25,6 @@ public interface StudentUseCase {
     /** Desativa sem apagar; repetir a chamada não muda nada. */
     void deactivate(Long id);
 
-    PageResult<Student> search(boolean includeInactive, PageRequest pageRequest);
+    /** q: trecho do nome, sem distinguir acento nem caixa (vazio devolve todos). */
+    PageResult<Student> search(String q, boolean includeInactive, PageRequest pageRequest);
 }

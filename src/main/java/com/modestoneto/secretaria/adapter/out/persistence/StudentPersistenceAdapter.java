@@ -50,15 +50,15 @@ class StudentPersistenceAdapter implements StudentRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResult<Student> search(boolean includeInactive, PageRequest p) {
+    public PageResult<Student> search(String q, boolean includeInactive, PageRequest p) {
         Sort.Direction direction = p.direction() == SortDirection.DESC ? Sort.Direction.DESC : Sort.Direction.ASC;
         // o desempate por id mantém a ordem estável entre as páginas quando há nomes iguais
         Sort sort = Sort.by(direction, p.sort()).and(Sort.by(direction, "id"));
         Pageable pageable = org.springframework.data.domain.PageRequest.of(p.page(), p.size(), sort);
 
         Page<StudentJpaEntity> page = includeInactive
-                ? repository.findAll(pageable)
-                : repository.findByActiveTrue(pageable);
+                ? repository.findByFullNameContaining(q, pageable)
+                : repository.findByFullNameContainingAndActiveTrue(q, pageable);
         return new PageResult<>(page.map(StudentMapper::toDomain).getContent(),
                 p.page(), p.size(), page.getTotalElements());
     }
