@@ -1,5 +1,6 @@
 package com.modestoneto.secretaria.adapter.in.web;
 
+import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
 import com.modestoneto.secretaria.domain.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,6 +33,11 @@ class GlobalExceptionHandler {
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .sorted().reduce((a, b) -> a + "; " + b).orElse("Requisição inválida");
         return build(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    ResponseEntity<StandardError> invalidRequest(InvalidRequestException e, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, e.getMessage(), request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

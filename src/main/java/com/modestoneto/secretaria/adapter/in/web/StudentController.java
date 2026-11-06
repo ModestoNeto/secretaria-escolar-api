@@ -1,6 +1,9 @@
 package com.modestoneto.secretaria.adapter.in.web;
 
+import com.modestoneto.secretaria.application.common.PageRequest;
+import com.modestoneto.secretaria.application.common.SortDirection;
 import com.modestoneto.secretaria.application.port.in.StudentUseCase;
+import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.model.Student;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -35,6 +39,27 @@ class StudentController {
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(created.id()).toUri();
         return ResponseEntity.created(location).body(StudentResponse.from(created));
+    }
+
+    @GetMapping
+    PageResponse<StudentResponse> list(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fullName,asc") String sort,
+            @RequestParam(defaultValue = "false") boolean includeInactive) {
+        String[] partes = sort.split(",");
+        SortDirection direction = partes.length > 1 ? parseDirection(partes[1]) : SortDirection.ASC;
+        var result = students.search(q, includeInactive, new PageRequest(page, size, partes[0], direction));
+        return PageResponse.from(result.map(StudentResponse::from));
+    }
+
+    private static SortDirection parseDirection(String valor) {
+        try {
+            return SortDirection.valueOf(valor.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidRequestException("direção deve ser asc ou desc");
+        }
     }
 
     @GetMapping("/{id}")

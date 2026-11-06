@@ -61,6 +61,29 @@ Decisões:
 - **PROFESSOR sem acesso por enquanto:** a regra "só os alunos das suas turmas" depende das turmas
   (próximas fases); até lá o acesso é negado (403).
 
+### Listagem paginada
+
+`GET /students?page=0&size=20&sort=fullName,asc&includeInactive=false` devolve
+`{content, page, size, totalElements, totalPages}`.
+- **Tipos próprios** (`PageRequest`, `PageResult<T>`, `SortDirection` em `application.common`): a
+  `application` não pode importar Spring Data, então o `Page`/`Pageable` do Spring só existem dentro do
+  adaptador de persistência (o ArchUnit vigia isso).
+- **Ordenação por lista fixa** (`fullName`, `registrationNumber`, `birthDate`): qualquer outro campo,
+  direção inválida, `page < 0` ou `size` fora de 1 a 100 devolve 400, nunca 500.
+- **Desempate por `id`** em toda ordenação, para a ordem não mudar entre páginas quando há nomes iguais.
+- Só alunos ativos por padrão; `includeInactive=true` inclui os desativados.
+
+### Busca por nome
+
+`GET /students?q=jose` filtra por trecho do nome, **sem distinguir acento nem caixa** (`jose`, `JOSÉ`
+e `Jose` acham "José"), com até 100 caracteres (mais que isso é 400).
+- **Sem normalização no código:** a coluna usa a colação `utf8mb4_0900_ai_ci` (*accent-insensitive*,
+  *case-insensitive*), e o `LIKE` do MySQL já compara assim. Se alguém trocar a colação, o teste de
+  acento falha.
+- O `Containing` do Spring Data **escapa** `%` e `_`: `q=%` procura um `%` literal, não "todos".
+- `%q%` não usa índice (varre a tabela); para o porte de uma escola não pesa, e fica registrado como
+  ponto de otimização se o volume crescer.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
