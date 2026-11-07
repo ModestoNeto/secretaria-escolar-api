@@ -5,6 +5,8 @@ import com.modestoneto.secretaria.domain.model.SchoolClass;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +21,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/classes")
-// PROFESSOR passa a "consultar as suas" quando o vínculo professor-disciplina existir.
 @PreAuthorize("hasAnyRole('ADMIN','SECRETARIA')")
 class ClassController {
 
@@ -37,14 +38,22 @@ class ClassController {
         return ResponseEntity.created(location).body(ClassResponse.from(created));
     }
 
+    // Consulta aberta ao PROFESSOR, mas só das turmas em que ele tem disciplina vinculada.
     @GetMapping
-    List<ClassResponse> list(@RequestParam(required = false) Integer schoolYear) {
-        return classes.list(schoolYear).stream().map(ClassResponse::from).toList();
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETARIA','PROFESSOR')")
+    List<ClassResponse> list(@RequestParam(required = false) Integer schoolYear, @AuthenticationPrincipal Jwt jwt) {
+        var result = Principals.isProfessor(jwt)
+                ? classes.listForTeacher(Principals.userId(jwt), schoolYear)
+                : classes.list(schoolYear);
+        return result.stream().map(ClassResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    ClassResponse findById(@PathVariable Long id) {
-        return ClassResponse.from(classes.findById(id));
+    @PreAuthorize("hasAnyRole('ADMIN','SECRETARIA','PROFESSOR')")
+    ClassResponse findById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return ClassResponse.from(Principals.isProfessor(jwt)
+                ? classes.findByIdForTeacher(id, Principals.userId(jwt))
+                : classes.findById(id));
     }
 
     @PutMapping("/{id}")

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 class SubjectPersistenceAdapter implements SubjectRepositoryPort {
@@ -26,6 +27,12 @@ class SubjectPersistenceAdapter implements SubjectRepositoryPort {
         } catch (DataIntegrityViolationException e) {
             throw new ConflictException("Disciplina já cadastrada");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Subject> findById(Long id) {
+        return repository.findById(id).map(e -> new Subject(e.getId(), e.getName()));
     }
 
     @Override

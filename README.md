@@ -99,7 +99,22 @@ desenvolvimento, nenhum segredo novo).
   e o `GlobalExceptionHandler` a devolve como `StandardError`, com mensagem clara.
 - **Sem paginação:** as listas são pequenas (por escola); `GET /classes?schoolYear=2026` filtra por ano.
 - **Sem tabela de professor:** o professor é um usuário com papel `PROFESSOR`; o vínculo guarda o id
-  dele. A tabela `class_subjects` já existe no `V3` (uso no próximo passo).
+  dele (`class_subjects`, criada no `V3`).
+
+### Vínculo professor e disciplina
+
+`POST /classes/{id}/subjects` (`{subjectId, teacherUserId}`), `GET /classes/{id}/subjects` e
+`DELETE /classes/{id}/subjects/{subjectId}`. Escrever é de `ADMIN` e `SECRETARIA`.
+- **Regras:** turma ou disciplina inexistente é 404; o usuário precisa existir, estar ativo e ter o
+  papel `PROFESSOR`, senão 400 (a mensagem diz o motivo); a mesma disciplina na mesma turma é 409.
+  Desvincular repetido dá 404.
+- **Posse do professor** ("consulta das suas"): o `sub` do JWT é o id do usuário. `GET /classes` e
+  `GET /classes/{id}` passam a aceitar `PROFESSOR`, mas só devolvem as turmas em que ele tem vínculo
+  (a consulta usa `EXISTS`, então uma turma com várias disciplinas dele aparece uma vez). Turma que não
+  é dele responde **404, e não 403**, para não revelar que ela existe; em
+  `GET /classes/{id}/subjects` ele vê só os vínculos dele. Há teste que quebra se essa checagem sumir.
+- A resposta do vínculo traz ids, sem nome da disciplina nem do professor (o front resolve pelas
+  listas); embutir os nomes entra se o volume pedir, com consulta própria para evitar N+1.
 
 ## Testes
 

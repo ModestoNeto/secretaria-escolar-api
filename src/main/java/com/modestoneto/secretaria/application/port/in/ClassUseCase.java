@@ -19,4 +19,9 @@ public interface ClassUseCase {
 
     /** schoolYear nulo lista todas; sem paginação (lista pequena). */
     List<SchoolClass> list(Integer schoolYear);
+
+    /** Versões do professor: só as turmas dele. NotFoundException (e não 403) se a turma não for dele. */
+    List<SchoolClass> listForTeacher(Long teacherUserId, Integer schoolYear);
+
+    SchoolClass findByIdForTeacher(Long id, Long teacherUserId);
 }

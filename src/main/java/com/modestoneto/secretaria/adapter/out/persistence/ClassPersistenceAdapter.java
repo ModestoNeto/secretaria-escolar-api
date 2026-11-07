@@ -44,6 +44,21 @@ class ClassPersistenceAdapter implements ClassRepositoryPort {
         return entities.stream().map(ClassPersistenceAdapter::toDomain).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SchoolClass> findAllByTeacher(Long teacherUserId, Integer schoolYear) {
+        var entities = schoolYear == null
+                ? repository.findLinkedToTeacher(teacherUserId)
+                : repository.findLinkedToTeacherInYear(teacherUserId, schoolYear);
+        return entities.stream().map(ClassPersistenceAdapter::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isTeacherOf(Long classId, Long teacherUserId) {
+        return repository.isTeacherOf(classId, teacherUserId);
+    }
+
     private static SchoolClass toDomain(ClassJpaEntity e) {
         return new SchoolClass(e.getId(), e.getName(), e.getGradeLevel(), e.getShift(), e.getSchoolYear(), e.getCapacity());
     }

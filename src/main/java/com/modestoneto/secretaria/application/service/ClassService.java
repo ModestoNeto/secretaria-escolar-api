@@ -41,4 +41,20 @@ public class ClassService implements ClassUseCase {
     public List<SchoolClass> list(Integer schoolYear) {
         return classes.findAll(schoolYear);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SchoolClass> listForTeacher(Long teacherUserId, Integer schoolYear) {
+        return classes.findAllByTeacher(teacherUserId, schoolYear);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SchoolClass findByIdForTeacher(Long id, Long teacherUserId) {
+        if (!classes.isTeacherOf(id, teacherUserId)) {
+            // 404 e não 403: não revela que a turma existe
+            throw new NotFoundException("Turma não encontrada: " + id);
+        }
+        return findById(id);
+    }
 }

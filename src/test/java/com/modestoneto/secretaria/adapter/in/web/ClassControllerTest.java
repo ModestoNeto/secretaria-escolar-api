@@ -230,10 +230,15 @@ class ClassControllerTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    void professorRecebe403ESemTokenRecebe401() throws Exception {
+    void professorSoConsultaEntaoCriarEAtualizarDao403ESemTokenDa401() throws Exception {
+        long id = criarTurma(marcador(), 2099);
         criar(Role.PROFESSOR, valida(marcador(), 2099)).andExpect(status().isForbidden());
-        mvc.perform(get("/classes").header("Authorization", bearer(Role.PROFESSOR)))
+        mvc.perform(put("/classes/" + id).header("Authorization", bearer(Role.PROFESSOR))
+                        .contentType(MediaType.APPLICATION_JSON).content(valida(marcador(), 2099)))
                 .andExpect(status().isForbidden());
+        // consulta é permitida (a posse por vínculo é testada em ClassSubjectControllerTest)
+        mvc.perform(get("/classes").header("Authorization", bearer(Role.PROFESSOR)))
+                .andExpect(status().isOk());
         mvc.perform(get("/classes")).andExpect(status().isUnauthorized());
         mvc.perform(post("/classes").contentType(MediaType.APPLICATION_JSON).content(valida("Sem token", 2099)))
                 .andExpect(status().isUnauthorized());

@@ -14,4 +14,9 @@ public interface ClassRepositoryPort {
 
     /** schoolYear nulo devolve todas; ordenadas por ano (mais recente primeiro) e nome. */
     List<SchoolClass> findAll(Integer schoolYear);
+
+    /** Só as turmas em que o professor tem alguma disciplina vinculada; schoolYear nulo devolve todos os anos. */
+    List<SchoolClass> findAllByTeacher(Long teacherUserId, Integer schoolYear);
+
+    boolean isTeacherOf(Long classId, Long teacherUserId);
 }
