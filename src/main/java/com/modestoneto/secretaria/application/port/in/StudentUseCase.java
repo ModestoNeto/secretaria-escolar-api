@@ -12,10 +12,12 @@ public interface StudentUseCase {
     /** Campos permitidos na ordenação; qualquer outro vira 400. */
     Set<String> SORT_FIELDS = Set.of("fullName", "registrationNumber", "birthDate");
 
+    /** cpf: os 11 dígitos, já normalizados e validados por Cpf.normalize. */
     record StudentData(String fullName, LocalDate birthDate, String guardianName,
-                       String guardianPhone, String email) {
+                       String guardianPhone, String email, String cpf) {
     }
 
+    /** Lança ConflictException se o CPF já pertencer a outro aluno. */
     Student create(StudentData data);
 
     Student update(Long id, StudentData data);
@@ -25,6 +27,9 @@ public interface StudentUseCase {
     /** Desativa sem apagar; repetir a chamada não muda nada. */
     void deactivate(Long id);
 
-    /** q: trecho do nome, sem distinguir acento nem caixa (vazio devolve todos). */
+    /**
+     * q: um CPF (com ou sem máscara, inteiro ou o começo dele) procura pelo CPF; qualquer outro texto é um
+     * trecho do nome, sem distinguir acento nem caixa (vazio devolve todos).
+     */
     PageResult<Student> search(String q, boolean includeInactive, PageRequest pageRequest);
 }

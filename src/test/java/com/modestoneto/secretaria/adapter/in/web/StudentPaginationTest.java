@@ -3,6 +3,7 @@ package com.modestoneto.secretaria.adapter.in.web;
 import com.jayway.jsonpath.JsonPath;
 import com.modestoneto.secretaria.AbstractMySqlIntegrationTest;
 import com.modestoneto.secretaria.TestAuth;
+import com.modestoneto.secretaria.TestCpf;
 import com.modestoneto.secretaria.application.port.out.UserRepositoryPort;
 import com.modestoneto.secretaria.domain.model.Role;
 import org.junit.jupiter.api.Test;
@@ -46,8 +47,8 @@ class StudentPaginationTest extends AbstractMySqlIntegrationTest {
     }
 
     private long criar(String nome, String nascimento) throws Exception {
-        String corpo = "{\"fullName\":\"%s\",\"birthDate\":\"%s\",\"guardianName\":\"Responsavel\",\"guardianPhone\":\"11999998888\"}"
-                .formatted(nome, nascimento);
+        String corpo = "{\"fullName\":\"%s\",\"birthDate\":\"%s\",\"guardianName\":\"Responsavel\",\"guardianPhone\":\"11999998888\",\"cpf\":\"%s\"}"
+                .formatted(nome, nascimento, TestCpf.novo());
         String resposta = mvc.perform(post("/students").header("Authorization", bearer(Role.ADMIN))
                         .contentType(MediaType.APPLICATION_JSON).content(corpo))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();

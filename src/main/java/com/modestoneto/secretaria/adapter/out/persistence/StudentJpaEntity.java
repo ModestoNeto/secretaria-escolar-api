@@ -38,11 +38,15 @@ class StudentJpaEntity {
     @Column(nullable = false)
     private boolean active;
 
+    // só os 11 dígitos, sem máscara; nulo nos alunos de antes do CPF existir
+    @Column(length = 11)
+    private String cpf;
+
     protected StudentJpaEntity() {
     }
 
     StudentJpaEntity(Long id, String registrationNumber, String fullName, LocalDate birthDate,
-                     String guardianName, String guardianPhone, String email, boolean active) {
+                     String guardianName, String guardianPhone, String email, boolean active, String cpf) {
         this.id = id;
         this.registrationNumber = registrationNumber;
         this.fullName = fullName;
@@ -51,6 +55,7 @@ class StudentJpaEntity {
         this.guardianPhone = guardianPhone;
         this.email = email;
         this.active = active;
+        this.cpf = cpf;
     }
 
     Long getId() { return id; }
@@ -62,4 +67,5 @@ class StudentJpaEntity {
     String getGuardianPhone() { return guardianPhone; }
     String getEmail() { return email; }
     boolean isActive() { return active; }
+    String getCpf() { return cpf; }
 }

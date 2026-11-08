@@ -60,6 +60,14 @@ Decisões:
   não é número (400).
 - **PROFESSOR sem acesso por enquanto:** a regra "só os alunos das suas turmas" depende das turmas
   (próximas fases); até lá o acesso é negado (403).
+- **CPF, a chave de busca principal:** obrigatório em todo cadastro e edição, único (409 se repetir).
+  No banco fica **sem máscara** (11 dígitos, `V4`); a API devolve **com máscara** (`000.000.000-00`) e
+  aceita os dois formatos na entrada, tirando a máscara antes de gravar. O formato e os dígitos
+  verificadores são validados no domínio (`Cpf`): CPF inválido é 400, e a mensagem nunca repete o valor
+  (dado pessoal não vai para a resposta nem para o log). Os alunos do seed do `V2` ganharam CPFs
+  fictícios no `V4`; alunos antigos sem CPF continuam com `null` (o `UNIQUE` aceita vários nulos) até
+  alguém editá-los. **Os CPFs do seed são gerados por algoritmo e, por terem dígitos válidos, podem
+  coincidir por acaso com CPFs reais: só para desenvolvimento.**
 
 ### Listagem paginada
 
@@ -72,6 +80,12 @@ Decisões:
   direção inválida, `page < 0` ou `size` fora de 1 a 100 devolve 400, nunca 500.
 - **Desempate por `id`** em toda ordenação, para a ordem não mudar entre páginas quando há nomes iguais.
 - Só alunos ativos por padrão; `includeInactive=true` inclui os desativados.
+
+### Busca por CPF
+
+`GET /students?q=` com **só dígitos e máscara** (a partir de 3 dígitos) procura pelo CPF: o número
+inteiro (`q=111.444.777-35` ou `q=11144477735`) é a busca exata, e o começo dele (`q=111.444`) lista os
+que começam assim. É um `LIKE 'prefixo%'`, que usa o índice único. Qualquer outro texto é busca por nome.
 
 ### Busca por nome
 

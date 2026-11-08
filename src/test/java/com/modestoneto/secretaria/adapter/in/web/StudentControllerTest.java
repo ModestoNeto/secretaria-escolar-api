@@ -3,6 +3,7 @@ package com.modestoneto.secretaria.adapter.in.web;
 import com.jayway.jsonpath.JsonPath;
 import com.modestoneto.secretaria.AbstractMySqlIntegrationTest;
 import com.modestoneto.secretaria.TestAuth;
+import com.modestoneto.secretaria.TestCpf;
 import com.modestoneto.secretaria.application.port.out.UserRepositoryPort;
 import com.modestoneto.secretaria.domain.model.Role;
 import org.junit.jupiter.api.Test;
@@ -50,8 +51,8 @@ class StudentControllerTest extends AbstractMySqlIntegrationTest {
     }
 
     private static String json(String nome, String nascimento, String telefone, String email) {
-        return "{\"fullName\":%s,\"birthDate\":%s,\"guardianName\":\"Responsável Teste\",\"guardianPhone\":%s,\"email\":%s}"
-                .formatted(q(nome), q(nascimento), q(telefone), q(email));
+        return "{\"fullName\":%s,\"birthDate\":%s,\"guardianName\":\"Responsável Teste\",\"guardianPhone\":%s,\"email\":%s,\"cpf\":\"%s\"}"
+                .formatted(q(nome), q(nascimento), q(telefone), q(email), TestCpf.novo());
     }
 
     private static String valido() {
