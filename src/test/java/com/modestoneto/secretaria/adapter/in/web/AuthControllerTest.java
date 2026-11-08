@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -80,7 +81,50 @@ class AuthControllerTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
-    void corpoInvalidoDa400() throws Exception {
+    void cincoFalhasBloqueiamOEmailMesmoComSenhaCorreta() throws Exception {
+        String email = "bloqueado-" + System.nanoTime() + "@teste.example";
+        users.save(new User(null, "Bloqueado", email,
+                new BCryptPasswordEncoder().encode("senha-forte"), Role.PROFESSOR, true));
+
+        for (int i = 0; i < 5; i++) {
+            login(email, "errada").andExpect(status().isUnauthorized());
+        }
+
+        login(email, "senha-forte")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"))
+                .andExpect(jsonPath("$.status").value(429));
+        // outro e-mail não é afetado
+        login(ADMIN, ADMIN_PASSWORD).andExpect(status().isOk());
+    }
+
+    @Test
+    void emailInexistenteTambemEhLimitado() throws Exception {
+        String email = "fantasma-" + System.nanoTime() + "@teste.example";
+        for (int i = 0; i < 5; i++) {
+            login(email, "x").andExpect(status().isUnauthorized());
+        }
+        login(email, "x").andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void loginComSucessoZeraAsFalhas() throws Exception {
+        String email = "zera-" + System.nanoTime() + "@teste.example";
+        users.save(new User(null, "Zera", email,
+                new BCryptPasswordEncoder().encode("senha-forte"), Role.PROFESSOR, true));
+
+        for (int i = 0; i < 4; i++) {
+            login(email, "errada").andExpect(status().isUnauthorized());
+        }
+        login(email, "senha-forte").andExpect(status().isOk());
+        for (int i = 0; i < 4; i++) {
+            login(email, "errada").andExpect(status().isUnauthorized());
+        }
+        login(email, "senha-forte").andExpect(status().isOk());
+    }
+
+    @Test
+    void corpoInvalidoDa400()throws Exception {
         login("nao-e-email", "").andExpect(status().isBadRequest());
     }
 

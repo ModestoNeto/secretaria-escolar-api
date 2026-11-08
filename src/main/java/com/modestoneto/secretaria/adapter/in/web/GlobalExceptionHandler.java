@@ -3,8 +3,10 @@ package com.modestoneto.secretaria.adapter.in.web;
 import com.modestoneto.secretaria.domain.exception.ConflictException;
 import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
+import com.modestoneto.secretaria.domain.exception.TooManyAttemptsException;
 import com.modestoneto.secretaria.domain.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -21,6 +23,14 @@ class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     ResponseEntity<StandardError> unauthorized(UnauthorizedException e, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, e.getMessage(), request);
+    }
+
+    @ExceptionHandler(TooManyAttemptsException.class)
+    ResponseEntity<StandardError> tooManyAttempts(TooManyAttemptsException e, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.retryAfterSeconds()))
+                .body(new StandardError(Instant.now(), 429, HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
+                        e.getMessage(), request.getRequestURI()));
     }
 
     @ExceptionHandler(NotFoundException.class)
