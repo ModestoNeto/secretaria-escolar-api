@@ -133,6 +133,9 @@ desenvolvimento, nenhum segredo novo).
   `GET /classes/{id}/subjects` ele vê só os vínculos dele. Há teste que quebra se essa checagem sumir.
 - A resposta do vínculo traz ids, sem nome da disciplina nem do professor (o front resolve pelas
   listas); embutir os nomes entra se o volume pedir, com consulta própria para evitar N+1.
+- **Seletor de professor:** `GET /users?role=PROFESSOR` (`ADMIN` e `SECRETARIA`) devolve só os ativos, por
+  ordem de nome, sem o hash da senha. O `role` é obrigatório (sem ele, 400): a secretaria não lista
+  todos os usuários.
 
 ## Testes
 
