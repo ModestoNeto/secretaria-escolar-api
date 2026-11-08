@@ -11,4 +11,9 @@ interface SpringDataStudentRepository extends JpaRepository<StudentJpaEntity, Lo
     Page<StudentJpaEntity> findByFullNameContaining(String q, Pageable pageable);
 
     Page<StudentJpaEntity> findByFullNameContainingAndActiveTrue(String q, Pageable pageable);
+
+    // CPF: LIKE 'prefixo%' usa o índice único (diferente do %nome%, que varre a tabela).
+    Page<StudentJpaEntity> findByCpfStartingWith(String cpfPrefix, Pageable pageable);
+
+    Page<StudentJpaEntity> findByCpfStartingWithAndActiveTrue(String cpfPrefix, Pageable pageable);
 }

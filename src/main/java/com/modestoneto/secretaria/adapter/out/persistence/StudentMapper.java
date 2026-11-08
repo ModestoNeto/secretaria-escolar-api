@@ -9,11 +9,11 @@ final class StudentMapper {
 
     static Student toDomain(StudentJpaEntity e) {
         return new Student(e.getId(), e.getRegistrationNumber(), e.getFullName(), e.getBirthDate(),
-                e.getGuardianName(), e.getGuardianPhone(), e.getEmail(), e.isActive());
+                e.getGuardianName(), e.getGuardianPhone(), e.getEmail(), e.isActive(), e.getCpf());
     }
 
     static StudentJpaEntity toEntity(Student s) {
         return new StudentJpaEntity(s.id(), s.registrationNumber(), s.fullName(), s.birthDate(),
-                s.guardianName(), s.guardianPhone(), s.email(), s.active());
+                s.guardianName(), s.guardianPhone(), s.email(), s.active(), s.cpf());
     }
 }

@@ -1,6 +1,7 @@
 package com.modestoneto.secretaria.adapter.out.persistence;
 
 import com.modestoneto.secretaria.AbstractMySqlIntegrationTest;
+import com.modestoneto.secretaria.TestCpf;
 import com.modestoneto.secretaria.domain.model.Student;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ class StudentPersistenceAdapterTest extends AbstractMySqlIntegrationTest {
 
     private Student novo() {
         return new Student(null, null, "Aluno Adaptador", LocalDate.of(2014, 5, 10),
-                "Responsável", "11999998888", null, true);
+                "Responsável", "11999998888", null, true, TestCpf.novo());
     }
 
     @Test
@@ -57,7 +58,7 @@ class StudentPersistenceAdapterTest extends AbstractMySqlIntegrationTest {
         Student salvo = adapter.save(novo());
 
         Student editado = adapter.save(new Student(salvo.id(), salvo.registrationNumber(), "Outro Nome",
-                salvo.birthDate(), salvo.guardianName(), salvo.guardianPhone(), "a@b.test", false));
+                salvo.birthDate(), salvo.guardianName(), salvo.guardianPhone(), "a@b.test", false, salvo.cpf()));
 
         assertThat(editado.registrationNumber()).isEqualTo(salvo.registrationNumber());
         assertThat(adapter.findById(salvo.id())).get()

@@ -6,6 +6,7 @@ import com.modestoneto.secretaria.application.port.in.StudentUseCase;
 import com.modestoneto.secretaria.application.port.out.StudentRepositoryPort;
 import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
+import com.modestoneto.secretaria.domain.model.Cpf;
 import com.modestoneto.secretaria.domain.model.Student;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class StudentService implements StudentUseCase {
     @Override
     public Student create(StudentData d) {
         return students.save(new Student(null, null, d.fullName(), d.birthDate(),
-                d.guardianName(), d.guardianPhone(), d.email(), true));
+                d.guardianName(), d.guardianPhone(), d.email(), true, d.cpf()));
     }
 
     @Override
@@ -35,7 +36,7 @@ public class StudentService implements StudentUseCase {
         Student atual = findById(id);
         // a matrícula e o estado ativo nunca vêm do cliente
         return students.save(new Student(atual.id(), atual.registrationNumber(), d.fullName(),
-                d.birthDate(), d.guardianName(), d.guardianPhone(), d.email(), atual.active()));
+                d.birthDate(), d.guardianName(), d.guardianPhone(), d.email(), atual.active(), d.cpf()));
     }
 
     @Override
@@ -60,6 +61,9 @@ public class StudentService implements StudentUseCase {
         if (termo.length() > MAX_QUERY_LENGTH) {
             throw new InvalidRequestException("q deve ter no máximo " + MAX_QUERY_LENGTH + " caracteres");
         }
-        return students.search(termo, includeInactive, pageRequest);
+        // só dígitos e máscara (a partir de 3 dígitos) é busca por CPF, a chave principal; o resto é nome
+        return Cpf.searchDigits(termo)
+                .map(cpf -> students.searchByCpf(cpf, includeInactive, pageRequest))
+                .orElseGet(() -> students.search(termo, includeInactive, pageRequest));
     }
 }
