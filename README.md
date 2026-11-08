@@ -27,6 +27,10 @@ assinados com HS256 usando o `JWT_SECRET` do `.env` (32 caracteres ou mais). `PO
 o refresh por um novo par e `POST /auth/logout` responde 204.
 
 Decisões:
+- **Login seguro:** o BCrypt roda mesmo quando o e-mail não existe (hash falso), então o tempo de resposta
+  não revela quais e-mails existem. Cinco falhas em 15 min bloqueiam o e-mail por 15 min: `429` com
+  `Retry-After`, mesmo com a senha certa. O contador fica em memória (zera ao reiniciar, uma instância só)
+  e é por e-mail, não por IP.
 - **Sem estado:** não há tabela de tokens; o logout é do cliente, que descarta os tokens. Um refresh
   roubado vale até expirar (por isso a vida curta do acesso e o `JWT_SECRET` fora do repositório).
 - Cada token leva a claim `type`: o refresh **não autentica** rotas normais e o acesso não serve no
