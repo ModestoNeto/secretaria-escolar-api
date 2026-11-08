@@ -2,11 +2,13 @@ package com.modestoneto.secretaria.adapter.out.persistence;
 
 import com.modestoneto.secretaria.application.port.out.UserRepositoryPort;
 import com.modestoneto.secretaria.domain.exception.ConflictException;
+import com.modestoneto.secretaria.domain.model.Role;
 import com.modestoneto.secretaria.domain.model.User;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -31,6 +33,12 @@ class UserPersistenceAdapter implements UserRepositoryPort {
     @Transactional(readOnly = true)
     public Optional<User> findById(Long id) {
         return repository.findById(id).map(UserMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> findActiveByRole(Role role) {
+        return repository.findByRoleAndActiveTrueOrderByNameAscIdAsc(role).stream().map(UserMapper::toDomain).toList();
     }
 
     @Override
