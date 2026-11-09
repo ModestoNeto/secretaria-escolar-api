@@ -137,6 +137,22 @@ desenvolvimento, nenhum segredo novo).
   ordem de nome, sem o hash da senha. O `role` é obrigatório (sem ele, 400): a secretaria não lista
   todos os usuários.
 
+### Matrículas
+
+`POST /enrollments` (`{studentId, classId}`), `DELETE /enrollments/{id}` e `GET /classes/{id}/enrollments`
+(só as ativas). Tudo de `ADMIN` e `SECRETARIA`; o professor recebe 403 por enquanto.
+- **Unicidade:** um aluno tem uma matrícula **ativa** por ano letivo. É o banco que garante, com um `UNIQUE`
+  em `(student_id, active_year)`; `active_year` é uma coluna gerada que só tem valor quando a matrícula está
+  ativa (o `UNIQUE` aceita vários nulos, então o histórico de canceladas não atrapalha). A violação vira 409.
+- **Capacidade:** a turma é travada com `SELECT ... FOR UPDATE` (lock pessimista) antes de contar as vagas, então
+  duas matrículas disputando a última vaga nunca passam as duas. O lock vem **antes de qualquer leitura comum**,
+  porque no MySQL (REPEATABLE READ) a primeira leitura comum fixa o "retrato" da transação e a contagem não
+  veria a matrícula recém-confirmada de outra. Turma cheia é 409 ("Turma sem vagas").
+- **Cancelar, não apagar:** `DELETE` muda o status para `CANCELLED` (idempotente, sempre 204; id inexistente é 404).
+  A linha fica, porque notas e frequência vão apontar para a matrícula. Cancelar libera a vaga e o ano do aluno.
+- **Outras respostas:** turma ou aluno inexistente é 404; aluno inativo é 400.
+- A resposta traz ids (e o ano da turma na hora da matrícula), sem o nome do aluno.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).

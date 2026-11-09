@@ -36,6 +36,11 @@ class ClassPersistenceAdapter implements ClassRepositoryPort {
     }
 
     @Override
+    public Optional<SchoolClass> findByIdForUpdate(Long id) {
+        return repository.findByIdForUpdate(id).map(ClassPersistenceAdapter::toDomain);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<SchoolClass> findAll(Integer schoolYear) {
         var entities = schoolYear == null

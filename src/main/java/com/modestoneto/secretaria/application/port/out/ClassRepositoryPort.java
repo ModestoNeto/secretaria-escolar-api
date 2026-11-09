@@ -12,6 +12,9 @@ public interface ClassRepositoryPort {
 
     Optional<SchoolClass> findById(Long id);
 
+    /** Como findById, mas trava a linha da turma até o fim da transação (serializa as matrículas concorrentes). */
+    Optional<SchoolClass> findByIdForUpdate(Long id);
+
     /** schoolYear nulo devolve todas; ordenadas por ano (mais recente primeiro) e nome. */
     List<SchoolClass> findAll(Integer schoolYear);
 
