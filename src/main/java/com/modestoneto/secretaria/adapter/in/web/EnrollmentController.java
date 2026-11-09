@@ -39,7 +39,7 @@ class EnrollmentController {
     }
 
     @GetMapping("/classes/{classId}/enrollments")
-    List<EnrollmentResponse> listByClass(@PathVariable Long classId) {
-        return enrollments.listActive(classId).stream().map(EnrollmentResponse::from).toList();
+    List<ClassEnrollmentResponse> listByClass(@PathVariable Long classId) {
+        return enrollments.listActive(classId).stream().map(ClassEnrollmentResponse::from).toList();
     }
 }

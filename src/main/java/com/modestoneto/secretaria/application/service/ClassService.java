@@ -2,6 +2,8 @@ package com.modestoneto.secretaria.application.service;
 
 import com.modestoneto.secretaria.application.port.in.ClassUseCase;
 import com.modestoneto.secretaria.application.port.out.ClassRepositoryPort;
+import com.modestoneto.secretaria.application.port.out.EnrollmentRepositoryPort;
+import com.modestoneto.secretaria.domain.exception.ConflictException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
 import com.modestoneto.secretaria.domain.model.SchoolClass;
 import org.springframework.stereotype.Service;
@@ -14,9 +16,11 @@ import java.util.List;
 public class ClassService implements ClassUseCase {
 
     private final ClassRepositoryPort classes;
+    private final EnrollmentRepositoryPort enrollments;
 
-    public ClassService(ClassRepositoryPort classes) {
+    public ClassService(ClassRepositoryPort classes, EnrollmentRepositoryPort enrollments) {
         this.classes = classes;
+        this.enrollments = enrollments;
     }
 
     @Override
@@ -26,7 +30,14 @@ public class ClassService implements ClassUseCase {
 
     @Override
     public SchoolClass update(Long id, ClassData d) {
-        SchoolClass atual = findById(id);
+        // Trava a turma como a matrícula faz (e antes de qualquer leitura comum): sem isso, uma matrícula
+        // concorrente poderia entrar entre a checagem abaixo e o save.
+        SchoolClass atual = classes.findByIdForUpdate(id)
+                .orElseThrow(() -> new NotFoundException("Turma não encontrada: " + id));
+        // a matrícula guarda o ano da turma; mudá-lo depois deixaria o histórico (e a unicidade por ano) incoerente
+        if (d.schoolYear() != atual.schoolYear() && enrollments.existsByClass(id)) {
+            throw new ConflictException("Turma com matrículas: não é possível mudar o ano letivo");
+        }
         return classes.save(new SchoolClass(atual.id(), d.name(), d.gradeLevel(), d.shift(), d.schoolYear(), d.capacity()));
     }
 
