@@ -2,6 +2,7 @@ package com.modestoneto.secretaria.adapter.out.persistence;
 
 import com.modestoneto.secretaria.application.port.out.EnrollmentRepositoryPort;
 import com.modestoneto.secretaria.domain.exception.ConflictException;
+import com.modestoneto.secretaria.domain.model.EnrolledStudent;
 import com.modestoneto.secretaria.domain.model.Enrollment;
 import com.modestoneto.secretaria.domain.model.EnrollmentStatus;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,9 +45,19 @@ class EnrollmentPersistenceAdapter implements EnrollmentRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Enrollment> findActiveByClass(Long classId) {
-        return repository.findByClassIdAndStatusOrderByIdAsc(classId, EnrollmentStatus.ACTIVE).stream()
-                .map(EnrollmentPersistenceAdapter::toDomain).toList();
+    public boolean existsByClass(Long classId) {
+        return repository.existsByClassId(classId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EnrolledStudent> findActiveByClass(Long classId) {
+        return repository.findWithStudent(classId, EnrollmentStatus.ACTIVE).stream()
+                .map(row -> {
+                    var student = (StudentJpaEntity) row[1];
+                    return new EnrolledStudent(toDomain((EnrollmentJpaEntity) row[0]),
+                            student.getFullName(), student.getRegistrationNumber());
+                }).toList();
     }
 
     private static Enrollment toDomain(EnrollmentJpaEntity e) {

@@ -7,6 +7,7 @@ import com.modestoneto.secretaria.application.port.out.StudentRepositoryPort;
 import com.modestoneto.secretaria.domain.exception.ConflictException;
 import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
+import com.modestoneto.secretaria.domain.model.EnrolledStudent;
 import com.modestoneto.secretaria.domain.model.Enrollment;
 import com.modestoneto.secretaria.domain.model.EnrollmentStatus;
 import com.modestoneto.secretaria.domain.model.SchoolClass;
@@ -65,7 +66,7 @@ public class EnrollmentService implements EnrollmentUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Enrollment> listActive(Long classId) {
+    public List<EnrolledStudent> listActive(Long classId) {
         classes.findById(classId).orElseThrow(() -> new NotFoundException("Turma não encontrada: " + classId));
         return enrollments.findActiveByClass(classId);
     }

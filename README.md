@@ -151,7 +151,13 @@ desenvolvimento, nenhum segredo novo).
 - **Cancelar, não apagar:** `DELETE` muda o status para `CANCELLED` (idempotente, sempre 204; id inexistente é 404).
   A linha fica, porque notas e frequência vão apontar para a matrícula. Cancelar libera a vaga e o ano do aluno.
 - **Outras respostas:** turma ou aluno inexistente é 404; aluno inativo é 400.
-- A resposta traz ids (e o ano da turma na hora da matrícula), sem o nome do aluno.
+- **Lista da turma:** cada linha traz a matrícula e o aluno (`studentName`, `registrationNumber`), por ordem de
+  nome (sem acento nem caixa). É uma consulta só, com junção, então não há N+1. O `POST` devolve só ids e o ano
+  da turma na hora da matrícula.
+- **Ano da turma:** `PUT /classes/{id}` com outro `schoolYear` dá 409 se a turma já teve alguma matrícula (inclusive
+  cancelada), porque a matrícula guarda o ano e o histórico ficaria incoerente. Nome, série, turno e capacidade
+  continuam editáveis. Reduzir a capacidade abaixo do número de matriculados é permitido e só barra as novas.
+  O `PUT` usa o mesmo lock da matrícula, então as duas operações não se cruzam.
 
 ## Testes
 

@@ -34,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,8 +59,19 @@ class EnrollmentControllerTest extends AbstractMySqlIntegrationTest {
     }
 
     private long aluno(boolean ativo) {
-        return students.save(new Student(null, null, "Aluno " + UUID.randomUUID(), LocalDate.of(2014, 5, 10),
+        return aluno("Aluno " + UUID.randomUUID(), ativo);
+    }
+
+    private long aluno(String nome, boolean ativo) {
+        return students.save(new Student(null, null, nome, LocalDate.of(2014, 5, 10),
                 "Responsável", "11999998888", null, ativo, TestCpf.novo())).id();
+    }
+
+    private ResultActions editarTurma(long id, int ano, int vagas) throws Exception {
+        return mvc.perform(put("/classes/" + id).header("Authorization", bearer(Role.SECRETARIA))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Editada " + UUID.randomUUID().toString().substring(0, 8)
+                        + "\",\"gradeLevel\":5,\"shift\":\"MORNING\",\"schoolYear\":" + ano + ",\"capacity\":" + vagas + "}"));
     }
 
     private long turma(int ano, int vagas) {
@@ -99,6 +111,46 @@ class EnrollmentControllerTest extends AbstractMySqlIntegrationTest {
 
         listar(t).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].studentId").value(a));
+    }
+
+    @Test
+    void listaTrazNomeEMatriculaDoAlunoPorOrdemDeNome() throws Exception {
+        long t = turma(2087, 10);
+        long zeca = aluno("Zeca Souza", true);
+        long ana = aluno("Ana Lima", true);
+        long bia = aluno("Álvaro Dias", true); // com acento: a ordem ignora acento e caixa
+        matricular(zeca, t).andExpect(status().isCreated());
+        matricular(ana, t).andExpect(status().isCreated());
+        matricular(bia, t).andExpect(status().isCreated());
+
+        listar(t).andExpect(jsonPath("$[*].studentName").value(
+                        org.hamcrest.Matchers.contains("Álvaro Dias", "Ana Lima", "Zeca Souza")))
+                .andExpect(jsonPath("$[0].studentId").value(bia))
+                .andExpect(jsonPath("$[0].registrationNumber").value(
+                        students.findById(bia).orElseThrow().registrationNumber()))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    void naoMudaOAnoDeTurmaComMatriculasMasMudaOResto() throws Exception {
+        long t = turma(2086, 10);
+        matricular(aluno(true), t).andExpect(status().isCreated());
+
+        editarTurma(t, 2085, 10).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Turma com matrículas: não é possível mudar o ano letivo"));
+        editarTurma(t, 2086, 25).andExpect(status().isOk()).andExpect(jsonPath("$.capacity").value(25));
+    }
+
+    @Test
+    void matriculaCanceladaTambemSeguraOAnoEturmaSemMatriculasMuda() throws Exception {
+        long comHistorico = turma(2084, 10);
+        long id = idDaMatricula(matricular(aluno(true), comHistorico).andExpect(status().isCreated()));
+        mvc.perform(delete("/enrollments/" + id).header("Authorization", bearer(Role.ADMIN)))
+                .andExpect(status().isNoContent());
+
+        // o histórico da matrícula cancelada continua apontando para o ano da turma
+        editarTurma(comHistorico, 2083, 10).andExpect(status().isConflict());
+        editarTurma(turma(2082, 10), 2081, 10).andExpect(status().isOk()).andExpect(jsonPath("$.schoolYear").value(2081));
     }
 
     @Test

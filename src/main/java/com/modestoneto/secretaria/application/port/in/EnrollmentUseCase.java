@@ -1,5 +1,6 @@
 package com.modestoneto.secretaria.application.port.in;
 
+import com.modestoneto.secretaria.domain.model.EnrolledStudent;
 import com.modestoneto.secretaria.domain.model.Enrollment;
 
 import java.util.List;
@@ -15,6 +16,6 @@ public interface EnrollmentUseCase {
     /** Cancela a matrícula (idempotente: cancelar de novo não muda nada). NotFoundException se não existir. */
     void cancel(Long enrollmentId);
 
-    /** Só as matrículas ativas da turma, na ordem em que foram feitas. NotFoundException se a turma não existir. */
-    List<Enrollment> listActive(Long classId);
+    /** Só as matrículas ativas da turma, com os dados do aluno, por ordem de nome. NotFoundException se a turma não existir. */
+    List<EnrolledStudent> listActive(Long classId);
 }

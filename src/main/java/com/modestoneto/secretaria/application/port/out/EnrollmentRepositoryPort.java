@@ -1,5 +1,6 @@
 package com.modestoneto.secretaria.application.port.out;
 
+import com.modestoneto.secretaria.domain.model.EnrolledStudent;
 import com.modestoneto.secretaria.domain.model.Enrollment;
 
 import java.util.List;
@@ -14,5 +15,9 @@ public interface EnrollmentRepositoryPort {
 
     long countActiveByClass(Long classId);
 
-    List<Enrollment> findActiveByClass(Long classId);
+    /** Qualquer matrícula da turma, inclusive cancelada. */
+    boolean existsByClass(Long classId);
+
+    /** Só as ativas, com nome e número de matrícula do aluno, por ordem de nome (uma consulta só, sem N+1). */
+    List<EnrolledStudent> findActiveByClass(Long classId);
 }
