@@ -4,6 +4,7 @@ import com.modestoneto.secretaria.application.port.in.AssessmentUseCase;
 import com.modestoneto.secretaria.application.port.out.AssessmentRepositoryPort;
 import com.modestoneto.secretaria.application.port.out.ClassSubjectRepositoryPort;
 import com.modestoneto.secretaria.application.port.out.EnrollmentRepositoryPort;
+import com.modestoneto.secretaria.domain.exception.ConflictException;
 import com.modestoneto.secretaria.domain.exception.InvalidRequestException;
 import com.modestoneto.secretaria.domain.exception.NotFoundException;
 import com.modestoneto.secretaria.domain.model.Assessment;
@@ -56,7 +57,10 @@ public class AssessmentService implements AssessmentUseCase {
 
     @Override
     public List<GradeSheetEntry> saveGrades(Long assessmentId, Long teacherUserId, List<GradeInput> inputs) {
-        Assessment assessment = findAssessment(assessmentId);
+        // Trava a avaliação ANTES de qualquer leitura comum (REPEATABLE READ: a primeira leitura fixa o "retrato"):
+        // dois lançamentos simultâneos passam um de cada vez, e o segundo já enxerga as notas do primeiro e as
+        // atualiza em vez de tentar inserir de novo. O UNIQUE do banco continua como última barreira.
+        Assessment assessment = lock(assessmentId);
         Long classId = owned(assessment, teacherUserId).classId();
 
         Set<Long> active = enrollments.findActiveByClass(classId).stream()
@@ -80,6 +84,31 @@ public class AssessmentService implements AssessmentUseCase {
                 .map(in -> new Grade(existing.get(in.enrollmentId()), assessmentId, in.enrollmentId(), in.score()))
                 .toList());
         return assessments.findSheet(assessmentId, classId);
+    }
+
+    @Override
+    public Assessment update(Long assessmentId, Long teacherUserId, AssessmentData d) {
+        Assessment atual = lock(assessmentId);
+        owned(atual, teacherUserId);
+        // a nota máxima não pode ficar abaixo de uma nota já lançada (o lock impede um lançamento no meio)
+        if (assessments.findGrades(assessmentId).stream().anyMatch(g -> g.score().compareTo(d.maxScore()) > 0)) {
+            throw new ConflictException("Há notas acima do novo máximo da avaliação");
+        }
+        return assessments.save(new Assessment(atual.id(), atual.classSubjectId(), d.name(), d.term(), d.weight(), d.maxScore()));
+    }
+
+    @Override
+    public void delete(Long assessmentId, Long teacherUserId) {
+        Assessment atual = lock(assessmentId);
+        owned(atual, teacherUserId);
+        if (!assessments.findGrades(assessmentId).isEmpty()) {
+            throw new ConflictException("Avaliação com notas: não é possível apagar");
+        }
+        assessments.delete(assessmentId);
+    }
+
+    private Assessment lock(Long id) {
+        return assessments.findByIdForUpdate(id).orElseThrow(() -> new NotFoundException("Avaliação não encontrada: " + id));
     }
 
     private Assessment findAssessment(Long id) {

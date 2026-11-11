@@ -42,6 +42,21 @@ class AssessmentPersistenceAdapter implements AssessmentRepositoryPort {
     }
 
     @Override
+    public Optional<Assessment> findByIdForUpdate(Long id) {
+        return assessments.findByIdForUpdate(id).map(AssessmentPersistenceAdapter::toDomain);
+    }
+
+    @Override
+    public void delete(Long id) {
+        try {
+            assessments.deleteById(id);
+            assessments.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException("Avaliação com notas: não é possível apagar");
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Assessment> findByClassSubject(Long classSubjectId) {
         return assessments.findByClassSubjectIdOrderByTermAscNameAsc(classSubjectId).stream()

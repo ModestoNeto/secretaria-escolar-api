@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,22 @@ class AssessmentController {
                               @Valid @RequestBody AssessmentRequest request, @AuthenticationPrincipal Jwt jwt) {
         var data = new AssessmentData(request.name().trim(), request.term(), request.weight(), request.maxScore());
         return AssessmentResponse.from(assessments.create(classId, subjectId, Principals.userId(jwt), data));
+    }
+
+    @PutMapping("/assessments/{id}")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    AssessmentResponse update(@PathVariable Long id, @Valid @RequestBody AssessmentRequest request,
+                              @AuthenticationPrincipal Jwt jwt) {
+        var data = new AssessmentData(request.name().trim(), request.term(), request.weight(), request.maxScore());
+        return AssessmentResponse.from(assessments.update(id, Principals.userId(jwt), data));
+    }
+
+    // Só apaga avaliação sem notas (409 se já houver).
+    @DeleteMapping("/assessments/{id}")
+    @PreAuthorize("hasRole('PROFESSOR')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        assessments.delete(id, Principals.userId(jwt));
     }
 
     @GetMapping("/classes/{classId}/subjects/{subjectId}/assessments")

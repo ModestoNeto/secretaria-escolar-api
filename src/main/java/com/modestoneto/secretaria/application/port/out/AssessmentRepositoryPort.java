@@ -14,6 +14,14 @@ public interface AssessmentRepositoryPort {
 
     Optional<Assessment> findById(Long id);
 
+    /**
+     * Como findById, mas trava a linha até o fim da transação: quem altera as notas, edita ou apaga a avaliação
+     * espera a vez, então nenhuma gravação decide com dados velhos.
+     */
+    Optional<Assessment> findByIdForUpdate(Long id);
+
+    void delete(Long id);
+
     /** Por bimestre e nome. */
     List<Assessment> findByClassSubject(Long classSubjectId);
 
