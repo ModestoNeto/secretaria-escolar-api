@@ -131,8 +131,9 @@ desenvolvimento, nenhum segredo novo).
   (a consulta usa `EXISTS`, então uma turma com várias disciplinas dele aparece uma vez). Turma que não
   é dele responde **404, e não 403**, para não revelar que ela existe; em
   `GET /classes/{id}/subjects` ele vê só os vínculos dele. Há teste que quebra se essa checagem sumir.
-- A resposta do vínculo traz ids, sem nome da disciplina nem do professor (o front resolve pelas
-  listas); embutir os nomes entra se o volume pedir, com consulta própria para evitar N+1.
+- A resposta do vínculo traz os ids e o `subjectName`, porque o professor não pode ler `GET /subjects`.
+  O nome do professor não vem (a gestão resolve pela lista de usuários); embutir entra se o volume
+  pedir, com consulta própria para evitar N+1.
 - **Seletor de professor:** `GET /users?role=PROFESSOR` (`ADMIN` e `SECRETARIA`) devolve só os ativos, por
   ordem de nome, sem o hash da senha. O `role` é obrigatório (sem ele, 400): a secretaria não lista
   todos os usuários.

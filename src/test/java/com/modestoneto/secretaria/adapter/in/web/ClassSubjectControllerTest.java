@@ -281,6 +281,28 @@ class ClassSubjectControllerTest extends AbstractMySqlIntegrationTest {
     }
 
     @Test
+    void vinculoTrazONomeDaDisciplinaInclusiveParaOProfessor() throws Exception {
+        long turma = novaTurma();
+        String nome = "D " + marcador();
+        long disciplina = idDe(mvc.perform(post("/subjects").header("Authorization", bearer(Role.ADMIN))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"" + nome + "\"}"))
+                .andExpect(status().isCreated()));
+        Prof eu = novoProfessor();
+
+        vincularComoAdmin(turma, disciplina, eu.id())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.subjectName").value(nome));
+
+        // o professor não lê GET /subjects, então o nome tem que vir no próprio vínculo
+        mvc.perform(get("/subjects").header("Authorization", eu.bearer())).andExpect(status().isForbidden());
+        mvc.perform(get("/classes/" + turma + "/subjects").header("Authorization", eu.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].subjectName").value(nome));
+        mvc.perform(get("/classes/" + turma + "/subjects").header("Authorization", bearer(Role.SECRETARIA)))
+                .andExpect(jsonPath("$[0].subjectName").value(nome));
+    }
+
+    @Test
     void professorNaoVeVinculosDeTurmaAlheia() throws Exception {
         long turma = novaTurma();
         vincularComoAdmin(turma, novaDisciplina(), novoProfessor().id()).andExpect(status().isCreated());
