@@ -14,6 +14,9 @@ public interface ClassSubjectRepositoryPort {
 
     Optional<ClassSubject> findByClassAndSubject(Long classId, Long subjectId);
 
+    /** Como findByClassAndSubject, mas trava a linha até o fim da transação (serializa quem grava na mesma disciplina). */
+    Optional<ClassSubject> findByClassAndSubjectForUpdate(Long classId, Long subjectId);
+
     /** teacherUserId nulo devolve todos os vínculos da turma. */
     List<ClassSubject> findByClass(Long classId, Long teacherUserId);
 

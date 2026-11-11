@@ -51,6 +51,11 @@ class ClassSubjectPersistenceAdapter implements ClassSubjectRepositoryPort {
     }
 
     @Override
+    public Optional<ClassSubject> findByClassAndSubjectForUpdate(Long classId, Long subjectId) {
+        return repository.findByClassAndSubjectForUpdate(classId, subjectId).map(ClassSubjectPersistenceAdapter::toDomain);
+    }
+
+    @Override
     @Transactional
     public boolean delete(Long classId, Long subjectId) {
         try {
