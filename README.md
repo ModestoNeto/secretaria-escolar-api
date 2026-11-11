@@ -179,7 +179,15 @@ desenvolvimento, nenhum segredo novo).
   "nota <= máximo" olha outra tabela e fica no serviço. A nota aponta para a **matrícula**: se ela for cancelada, o
   aluno sai da pauta e a nota continua no histórico.
 - **Desvincular:** uma disciplina com avaliações não pode ser desvinculada da turma (409).
-- **Ainda não tem:** editar ou apagar avaliação, e a auditoria da alteração de nota (a tabela chega no Dia 13).
+- **Editar e apagar:** `PUT` e `DELETE /assessments/{id}` (só o professor titular). Não dá para baixar a nota
+  máxima abaixo de uma nota já lançada (409) nem apagar avaliação que já tem nota (409): a nota é histórico do aluno.
+- **Trava contra duplicidade e corrida:** lançar notas, editar e apagar travam a linha da avaliação
+  (`SELECT ... FOR UPDATE`) **antes de qualquer leitura comum**, pelo mesmo motivo das matrículas (REPEATABLE
+  READ). Dois lançamentos simultâneos passam um de cada vez e o segundo atualiza as notas do primeiro em vez de
+  inserir de novo, então não há duplicata nem 409 à toa. Reduzir a nota máxima enquanto alguém lança uma nota
+  maior também fica em fila, e nunca sobra nota acima do máximo. O `UNIQUE (assessment_id, enrollment_id)` segue
+  como última barreira. Dois pedidos para criar a mesma avaliação ao mesmo tempo criam uma só (o resto é 409).
+- **Ainda não tem:** a auditoria da alteração de nota (a tabela chega no Dia 13).
 
 ## Testes
 

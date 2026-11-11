@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.modestoneto.secretaria.AbstractMySqlIntegrationTest;
 import com.modestoneto.secretaria.TestAuth;
 import com.modestoneto.secretaria.TestCpf;
+import com.modestoneto.secretaria.application.port.out.AssessmentRepositoryPort;
 import com.modestoneto.secretaria.application.port.out.ClassRepositoryPort;
 import com.modestoneto.secretaria.application.port.out.ClassSubjectRepositoryPort;
 import com.modestoneto.secretaria.application.port.out.EnrollmentRepositoryPort;
@@ -31,7 +32,14 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -52,6 +60,7 @@ class AssessmentControllerTest extends AbstractMySqlIntegrationTest {
     @Autowired SubjectRepositoryPort subjects;
     @Autowired ClassSubjectRepositoryPort links;
     @Autowired EnrollmentRepositoryPort enrollments;
+    @Autowired AssessmentRepositoryPort assessments;
 
     private long classId;
     private long subjectId;
@@ -282,6 +291,136 @@ class AssessmentControllerTest extends AbstractMySqlIntegrationTest {
     void avaliacaoInexistenteDa404() throws Exception {
         mvc.perform(get("/assessments/999999999/grades").header("Authorization", bearer(Role.SECRETARIA)))
                 .andExpect(status().isNotFound());
+    }
+
+    private ResultActions editar(String auth, long id, String nome, int bimestre, String peso, String maximo) throws Exception {
+        return mvc.perform(put("/assessments/" + id).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"" + nome + "\",\"term\":" + bimestre + ",\"weight\":" + peso + ",\"maxScore\":" + maximo + "}"));
+    }
+
+    /** Dispara todas as tarefas ao mesmo tempo e devolve o status HTTP de cada uma. */
+    private List<Integer> emParalelo(List<Callable<Integer>> tarefas) throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(tarefas.size());
+        CountDownLatch largada = new CountDownLatch(1);
+        try {
+            List<Future<Integer>> futuros = new ArrayList<>();
+            for (Callable<Integer> t : tarefas) {
+                futuros.add(pool.submit(() -> {
+                    largada.await();
+                    return t.call();
+                }));
+            }
+            largada.countDown();
+            List<Integer> status = new ArrayList<>();
+            for (Future<Integer> f : futuros) {
+                status.add(f.get());
+            }
+            return status;
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void professorEditaAvaliacao() throws Exception {
+        long id = avaliacao();
+
+        editar(bearer(Role.PROFESSOR), id, "Prova final", 3, "4", "20").andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Prova final"))
+                .andExpect(jsonPath("$.term").value(3))
+                .andExpect(jsonPath("$.maxScore").value(20));
+    }
+
+    @Test
+    void editarParaNomeJaUsadoNoBimestreDa409() throws Exception {
+        String prof = bearer(Role.PROFESSOR);
+        criar(prof, "Existente", 1, "1", "10").andExpect(status().isCreated());
+        long id = avaliacao();
+
+        editar(prof, id, "Existente", 1, "1", "10").andExpect(status().isConflict());
+    }
+
+    @Test
+    void naoBaixaANotaMaximaAbaixoDeUmaNotaLancada() throws Exception {
+        long id = avaliacao();
+        String prof = bearer(Role.PROFESSOR);
+        lancar(prof, id, notas(enrollA, 8)).andExpect(status().isOk());
+
+        editar(prof, id, "Nova", 1, "1", "7").andExpect(status().isConflict());
+        editar(prof, id, "Nova", 1, "1", "8").andExpect(status().isOk());
+    }
+
+    @Test
+    void editarEApagarSoParaOProfessorTitular() throws Exception {
+        long id = avaliacao();
+
+        editar(bearer(Role.SECRETARIA), id, "X", 1, "1", "10").andExpect(status().isForbidden());
+        mvc.perform(delete("/assessments/" + id).header("Authorization", bearer(Role.ADMIN))).andExpect(status().isForbidden());
+        editar(bearerOutroProfessor(), id, "X", 1, "1", "10").andExpect(status().isNotFound());
+        mvc.perform(delete("/assessments/" + id).header("Authorization", bearerOutroProfessor())).andExpect(status().isNotFound());
+        editar(bearer(Role.PROFESSOR), 999999999, "X", 1, "1", "10").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void apagaAvaliacaoSemNotasMasNaoComNotas() throws Exception {
+        String prof = bearer(Role.PROFESSOR);
+        long vazia = avaliacao();
+        long comNotas = avaliacao();
+        lancar(prof, comNotas, notas(enrollA, 5)).andExpect(status().isOk());
+
+        mvc.perform(delete("/assessments/" + vazia).header("Authorization", prof)).andExpect(status().isNoContent());
+        mvc.perform(get("/assessments/" + vazia + "/grades").header("Authorization", prof)).andExpect(status().isNotFound());
+        mvc.perform(delete("/assessments/" + comNotas).header("Authorization", prof)).andExpect(status().isConflict());
+        mvc.perform(get("/assessments/" + comNotas + "/grades").header("Authorization", prof)).andExpect(status().isOk());
+    }
+
+    @Test
+    void lancamentosSimultaneosNaoDuplicamNemFalham() throws Exception {
+        long id = avaliacao();
+        String prof = bearer(Role.PROFESSOR);
+
+        List<Callable<Integer>> tarefas = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            String corpo = notas(enrollA, i, enrollB, i);
+            tarefas.add(() -> lancar(prof, id, corpo).andReturn().getResponse().getStatus());
+        }
+        List<Integer> status = emParalelo(tarefas);
+
+        // todos passam (um de cada vez, graças ao lock) e sobra exatamente uma nota por matrícula
+        assertThat(status).containsOnly(200);
+        assertThat(assessments.findGrades(id)).hasSize(2);
+    }
+
+    @Test
+    void criacoesSimultaneasDoMesmoNomeCriamUmaSo() throws Exception {
+        String prof = bearer(Role.PROFESSOR);
+        String nome = "Corrida " + UUID.randomUUID();
+
+        List<Callable<Integer>> tarefas = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            tarefas.add(() -> criar(prof, nome, 1, "1", "10").andReturn().getResponse().getStatus());
+        }
+        List<Integer> status = emParalelo(tarefas);
+
+        assertThat(status.stream().filter(s -> s == 201)).hasSize(1);
+        assertThat(status.stream().filter(s -> s == 409)).hasSize(7);
+    }
+
+    @Test
+    void reduzirOMaximoEnquantoSeLancaNaoDeixaNotaAcimaDoMaximo() throws Exception {
+        String prof = bearer(Role.PROFESSOR);
+        for (int rodada = 0; rodada < 10; rodada++) {
+            long id = avaliacao();
+            List<Integer> status = emParalelo(List.of(
+                    () -> editar(prof, id, "Reduzida " + UUID.randomUUID(), 1, "1", "5").andReturn().getResponse().getStatus(),
+                    () -> lancar(prof, id, notas(enrollA, 9)).andReturn().getResponse().getStatus()));
+
+            // os dois acontecem um depois do outro; nunca fica nota 9 numa avaliação de máximo 5
+            assertThat(status).doesNotContain(500);
+            boolean reduziu = status.get(0) == 200;
+            boolean lancou = status.get(1) == 200;
+            assertThat(reduziu && lancou).as("rodada %d: %s", rodada, status).isFalse();
+        }
     }
 
     @Test

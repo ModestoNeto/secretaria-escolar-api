@@ -21,6 +21,15 @@ public interface AssessmentUseCase {
     /** Disciplina não vinculada à turma (ou de outro professor): NotFoundException; nome repetido no bimestre: ConflictException. */
     Assessment create(Long classId, Long subjectId, Long teacherUserId, AssessmentData data);
 
+    /**
+     * Avaliação de outro professor: NotFoundException; nome repetido no bimestre: ConflictException; nota máxima
+     * abaixo de uma nota já lançada: ConflictException.
+     */
+    Assessment update(Long assessmentId, Long teacherUserId, AssessmentData data);
+
+    /** Avaliação com notas lançadas não se apaga (ConflictException): a nota é histórico do aluno. */
+    void delete(Long assessmentId, Long teacherUserId);
+
     List<Assessment> list(Long classId, Long subjectId, Long teacherUserId);
 
     List<GradeSheetEntry> sheet(Long assessmentId, Long teacherUserId);
