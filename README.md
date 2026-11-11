@@ -190,6 +190,30 @@ desenvolvimento, nenhum segredo novo).
   como última barreira. Dois pedidos para criar a mesma avaliação ao mesmo tempo criam uma só (o resto é 409).
 - **Ainda não tem:** a auditoria da alteração de nota (a tabela chega no Dia 13).
 
+## Frequência
+
+Uma linha por aluno e aula em `attendance_records` (`V7`): disciplina da turma, data, matrícula e `present`. O total
+de aulas de um aluno é a contagem das linhas dele; não há tabela separada de "aula". Como as notas, a linha aponta
+para a **matrícula**, então a frequência fica no histórico se ela for cancelada.
+
+- `PUT /classes/{classId}/subjects/{subjectId}/attendance/{date}` (`{records: [{enrollmentId, present}]}`, data
+  `yyyy-MM-dd`): registra a chamada da aula, tudo ou nada, e devolve a chamada já atualizada. Regravar a mesma data
+  atualiza quem já tinha registro e só mexe nos alunos enviados.
+- `GET` no mesmo caminho: a **chamada** do dia, com os alunos de matrícula ativa e `present` (nulo se ainda não
+  registrada), numa consulta só com `LEFT JOIN`.
+- `GET /enrollments/{id}/attendance` (só ADMIN e SECRETARIA): uma linha por disciplina com `lessons`, `presences`,
+  `absences` e `percentage` (1 casa). A soma é feita no banco (`GROUP BY`), sem carregar os registros. Sem aulas
+  registradas o resultado vem vazio; o cálculo de aprovação (frequência mínima de 75%) entra no boletim.
+- **Quem pode:** o professor **titular** registra; ADMIN e SECRETARIA só consultam (403 ao registrar). Professor de
+  outra disciplina recebe 404, como em avaliações.
+- **Regras:** data futura é 400 (hoje vale); a matrícula precisa estar ativa nesta turma; matrícula repetida no
+  pedido é 400; data fora do formato é 400.
+- **Trava contra duplicidade e corrida:** o registro trava a linha do vínculo (`SELECT ... FOR UPDATE`) **antes de
+  qualquer leitura comum**, pelo mesmo motivo das notas (REPEATABLE READ). Duas chamadas simultâneas da mesma
+  disciplina passam uma de cada vez e a segunda atualiza as linhas da primeira em vez de inserir de novo; o
+  `UNIQUE (class_subject_id, lesson_date, enrollment_id)` fica como última barreira. Há teste com 8 gravações ao
+  mesmo tempo (todas 200, uma aula por aluno) que falha quando a trava é retirada.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
