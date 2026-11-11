@@ -6,12 +6,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 interface SpringDataClassSubjectRepository extends JpaRepository<ClassSubjectJpaEntity, Long> {
 
     List<ClassSubjectJpaEntity> findByClassIdOrderBySubjectId(Long classId);
 
     List<ClassSubjectJpaEntity> findByClassIdAndTeacherUserIdOrderBySubjectId(Long classId, Long teacherUserId);
+
+    Optional<ClassSubjectJpaEntity> findByClassIdAndSubjectId(Long classId, Long subjectId);
 
     @Modifying
     @Query("delete from ClassSubjectJpaEntity cs where cs.classId = :classId and cs.subjectId = :subjectId")
