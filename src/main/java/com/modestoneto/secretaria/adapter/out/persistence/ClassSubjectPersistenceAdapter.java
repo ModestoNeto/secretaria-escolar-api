@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 class ClassSubjectPersistenceAdapter implements ClassSubjectRepositoryPort {
@@ -38,9 +39,26 @@ class ClassSubjectPersistenceAdapter implements ClassSubjectRepositoryPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<ClassSubject> findById(Long id) {
+        return repository.findById(id).map(ClassSubjectPersistenceAdapter::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ClassSubject> findByClassAndSubject(Long classId, Long subjectId) {
+        return repository.findByClassIdAndSubjectId(classId, subjectId).map(ClassSubjectPersistenceAdapter::toDomain);
+    }
+
+    @Override
     @Transactional
     public boolean delete(Long classId, Long subjectId) {
-        return repository.deleteLink(classId, subjectId) > 0;
+        try {
+            return repository.deleteLink(classId, subjectId) > 0;
+        } catch (DataIntegrityViolationException e) {
+            // a FK de assessments segura o vínculo: apagá-lo deixaria avaliações e notas sem dono
+            throw new ConflictException("Disciplina com avaliações: não é possível desvincular");
+        }
     }
 
     private static ClassSubject toDomain(ClassSubjectJpaEntity e) {

@@ -159,6 +159,28 @@ desenvolvimento, nenhum segredo novo).
   continuam editáveis. Reduzir a capacidade abaixo do número de matriculados é permitido e só barra as novas.
   O `PUT` usa o mesmo lock da matrícula, então as duas operações não se cruzam.
 
+## Avaliações e notas
+
+- `POST` e `GET /classes/{classId}/subjects/{subjectId}/assessments`: cria e lista as avaliações da disciplina na
+  turma (`name`, `term` de 1 a 4, `weight`, `maxScore`), por bimestre e nome. Nome repetido no bimestre é 409.
+- `GET /assessments/{id}/grades`: a **pauta**, com todos os alunos de matrícula ativa na turma e a nota deles
+  (`score` nulo se ainda não lançada). É uma consulta só, com `LEFT JOIN`; serve de lista de alunos para o professor,
+  que ainda não pode ler matrículas.
+- `PUT /assessments/{id}/grades` (`{grades: [{enrollmentId, score}]}`): lança ou corrige várias notas de uma vez,
+  tudo ou nada, e devolve a pauta atualizada. Só grava o que veio no pedido; não apaga as outras notas.
+- **Quem pode:** quem cria avaliação e lança nota é o professor **titular** do vínculo (turma, disciplina, professor).
+  ADMIN e SECRETARIA só consultam (403 ao tentar lançar). Professor de outra disciplina recebe 404 em tudo, como nas
+  turmas, para não revelar o que existe.
+- **Regras:** a matrícula precisa estar ativa **nesta turma**; nota entre 0 e `maxScore`; matrícula repetida no mesmo
+  pedido é 400. `weight`, `maxScore` e `score` são `DECIMAL(5,2)` (sem erro de ponto flutuante), e mais de duas casas
+  decimais é 400.
+- **Banco:** `UNIQUE (assessment_id, enrollment_id)` impede duas notas para o mesmo aluno; dois lançamentos
+  simultâneos viram 409. Os `CHECK` (bimestre, peso, nota máxima positivos, nota >= 0) repetem as regras no banco;
+  "nota <= máximo" olha outra tabela e fica no serviço. A nota aponta para a **matrícula**: se ela for cancelada, o
+  aluno sai da pauta e a nota continua no histórico.
+- **Desvincular:** uma disciplina com avaliações não pode ser desvinculada da turma (409).
+- **Ainda não tem:** editar ou apagar avaliação, e a auditoria da alteração de nota (a tabela chega no Dia 13).
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
