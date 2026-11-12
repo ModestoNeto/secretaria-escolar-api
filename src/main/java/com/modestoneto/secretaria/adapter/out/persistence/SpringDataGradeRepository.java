@@ -11,6 +11,12 @@ interface SpringDataGradeRepository extends JpaRepository<GradeJpaEntity, Long> 
 
     List<GradeJpaEntity> findByAssessmentId(Long assessmentId);
 
+    // Todas as notas da matrícula com peso e máximo da avaliação, numa consulta só (usada no boletim).
+    @Query("select a.classSubjectId, a.term, a.weight, a.maxScore, g.score "
+            + "from GradeJpaEntity g join AssessmentJpaEntity a on a.id = g.assessmentId "
+            + "where g.enrollmentId = :enrollmentId")
+    List<Object[]> findGradeLines(@Param("enrollmentId") Long enrollmentId);
+
     // Pauta numa consulta só: matrículas ativas da turma, o aluno e a nota (left join: nula se ainda não lançada).
     @Query("select e.id, s.id, s.fullName, s.registrationNumber, g.score "
             + "from EnrollmentJpaEntity e join StudentJpaEntity s on s.id = e.studentId "

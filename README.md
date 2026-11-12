@@ -214,6 +214,37 @@ para a **matrícula**, então a frequência fica no histórico se ela for cancel
   `UNIQUE (class_subject_id, lesson_date, enrollment_id)` fica como última barreira. Há teste com 8 gravações ao
   mesmo tempo (todas 200, uma aula por aluno) que falha quando a trava é retirada.
 
+## Boletim
+
+`GET /students/{id}/report-card?schoolYear=` (ano atual se omitido): o boletim da **matrícula ativa** do aluno no
+ano, com uma linha por disciplina da turma: média por bimestre, média final, frequência e resultado, mais o
+resultado geral. ADMIN e SECRETARIA veem qualquer aluno; o professor só os de turmas em que é titular (senão 404, como
+nas turmas). Aluno inexistente ou sem matrícula ativa no ano é 404.
+
+- **Média:** cada nota vai para a escala 0 a 10 (`nota / nota máxima * 10`) e a média é ponderada pelo peso, com
+  2 casas. Disciplina sem nota lançada tem média nula.
+- **Resultado:** `APPROVED` (média >= 6,0 e frequência >= 75%), `RECOVERY` (média < 6,0 com frequência suficiente),
+  `FAILED` (frequência < 75%, mesmo com média alta) e `IN_PROGRESS` (sem nota ainda e sem falta demais). A conta da
+  frequência é exata (74,9% não arredonda para 75%). O geral pega o pior caso: `FAILED`, depois `RECOVERY`, depois
+  `IN_PROGRESS`. A regra é código de domínio puro (`ReportCardCalculator`), com teste unitário.
+
+### O N+1 do boletim, medido e corrigido
+
+A primeira versão lia uma disciplina por vez: o nome da disciplina, as avaliações dela e, para cada avaliação, as
+notas. Medido com as estatísticas do Hibernate (`getPrepareStatementCount`) no mesmo pedido:
+
+| Boletim | Antes (consulta por disciplina e por avaliação) | Depois |
+|---|---|---|
+| 1 disciplina, 1 avaliação | 8 comandos SQL | 6 |
+| 6 disciplinas, 21 avaliações | **38** comandos SQL | **6** |
+
+O "antes" é `5 + disciplinas + disciplinas + avaliações` (aluno, matrícula, turma, frequência e vínculos, mais o nome
+da disciplina, a lista de avaliações e as notas de cada avaliação) e cresce com o boletim. O "depois" são três leituras
+agregadas, sempre as mesmas: disciplinas da turma com o nome (um `JOIN`), todas as notas da matrícula com peso e
+máximo (um `JOIN`) e a frequência (um `GROUP BY`), além das buscas do aluno, da matrícula e da turma. O teste
+`numeroDeConsultasDoBoletimNaoCresceComDisciplinasEAvaliacoes` falha se alguém voltar a consultar dentro de um
+laço: ele compara os dois tamanhos e exige exatamente 6 comandos.
+
 ## Testes
 
 `./mvnw test` precisa do Docker aberto (não precisa do Compose nem do `.env`).
