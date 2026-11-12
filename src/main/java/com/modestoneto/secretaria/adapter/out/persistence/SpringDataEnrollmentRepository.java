@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 interface SpringDataEnrollmentRepository extends JpaRepository<EnrollmentJpaEntity, Long> {
 
     long countByClassIdAndStatus(Long classId, EnrollmentStatus status);
+
+    Optional<EnrollmentJpaEntity> findByStudentIdAndSchoolYearAndStatus(Long studentId, int schoolYear, EnrollmentStatus status);
 
     boolean existsByClassId(Long classId);
 

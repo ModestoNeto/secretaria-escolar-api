@@ -13,6 +13,9 @@ public interface EnrollmentRepositoryPort {
 
     Optional<Enrollment> findById(Long id);
 
+    /** A matrícula ativa do aluno no ano letivo (há no máximo uma). */
+    Optional<Enrollment> findActiveByStudentAndYear(Long studentId, int schoolYear);
+
     long countActiveByClass(Long classId);
 
     /** Qualquer matrícula da turma, inclusive cancelada. */

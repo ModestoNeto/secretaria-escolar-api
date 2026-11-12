@@ -39,6 +39,13 @@ class EnrollmentPersistenceAdapter implements EnrollmentRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<Enrollment> findActiveByStudentAndYear(Long studentId, int schoolYear) {
+        return repository.findByStudentIdAndSchoolYearAndStatus(studentId, schoolYear, EnrollmentStatus.ACTIVE)
+                .map(EnrollmentPersistenceAdapter::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long countActiveByClass(Long classId) {
         return repository.countByClassIdAndStatus(classId, EnrollmentStatus.ACTIVE);
     }

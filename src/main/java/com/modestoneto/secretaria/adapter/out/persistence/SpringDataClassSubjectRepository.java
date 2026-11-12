@@ -14,6 +14,12 @@ interface SpringDataClassSubjectRepository extends JpaRepository<ClassSubjectJpa
 
     List<ClassSubjectJpaEntity> findByClassIdOrderBySubjectId(Long classId);
 
+    // Disciplinas da turma já com o nome, numa consulta só (usada no boletim).
+    @Query("select cs.id, cs.subjectId, sub.name from ClassSubjectJpaEntity cs "
+            + "join SubjectJpaEntity sub on sub.id = cs.subjectId where cs.classId = :classId "
+            + "order by sub.name asc, cs.id asc")
+    List<Object[]> findSubjectRefs(@Param("classId") Long classId);
+
     List<ClassSubjectJpaEntity> findByClassIdAndTeacherUserIdOrderBySubjectId(Long classId, Long teacherUserId);
 
     Optional<ClassSubjectJpaEntity> findByClassIdAndSubjectId(Long classId, Long subjectId);
